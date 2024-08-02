@@ -1,0 +1,218 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Sistema de Facturación</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            background-color: #f4f4f4;
+            margin: 0;
+            padding: 0;
+        }
+        .container {
+            width: 80%;
+            margin: 20px auto;
+            background-color: white;
+            padding: 20px;
+            box-shadow: 0px 0px 10px rgba(0, 0, 0, 0.1);
+            border-radius: 5px;
+        }
+        h1 {
+            text-align: center;
+            color: #333;
+        }
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            margin-bottom: 20px;
+        }
+        table, th, td {
+            border: 1px solid #ddd;
+        }
+        th, td {
+            padding: 10px;
+            text-align: left;
+        }
+        th {
+            background-color: #f2f2f2;
+        }
+        .btn {
+            padding: 10px 15px;
+            background-color: #4CAF50;
+            color: white;
+            border: none;
+            border-radius: 5px;
+            cursor: pointer;
+        }
+        .btn:hover {
+            background-color: #45a049;
+        }
+        .btn-danger {
+            background-color: #f44336;
+        }
+        .btn-danger:hover {
+            background-color: #e53935;
+        }
+        input[type="date"],
+        input[type="text"],
+        input[type="number"],
+        textarea {
+            width: calc(100% - 22px);
+            padding: 10px;
+            margin-bottom: 10px;
+            border: 1px solid #ddd;
+            border-radius: 5px;
+        }
+        .logout {
+            text-align: right;
+        }
+        .logout button {
+            margin-bottom: 20px;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="logout">
+            <button class="btn" onclick="logout()">Cerrar Sesión</button>
+        </div>
+        <h1>Sistema de Facturación</h1>
+        <form id="facturaForm" onsubmit="guardarFactura(event)">
+            <label for="fecha">Fecha:</label>
+            <input type="date" id="fecha" name="fecha" required><br><br>
+            <label for="codigoCliente">Código del Cliente:</label>
+            <input type="text" id="codigoCliente" name="codigoCliente" required>
+            <button type="button" onclick="cargarCliente()">Cargar Cliente</button><br><br>
+            <label for="nombreCliente">Nombre del Cliente:</label>
+            <input type="text" id="nombreCliente" name="nombreCliente" required><br><br>
+            <h3>Artículos</h3>
+            <table id="articulosTable">
+                <thead>
+                    <tr>
+                        <th>Nombre</th>
+                        <th>Cantidad</th>
+                        <th>Precio</th>
+                        <th>Total</th>
+                        <th>Acción</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    <!-- Filas se agregarán dinámicamente -->
+                </tbody>
+            </table>
+            <button type="button" class="btn" onclick="agregarArticulo()">Agregar Artículo</button><br><br>
+            <label for="totalPagar">Total a Pagar:</label>
+            <input type="number" id="totalPagar" name="totalPagar" readonly><br><br>
+            <label for="comentario">Comentario:</label>
+            <textarea id="comentario" name="comentario"></textarea><br><br>
+            <button type="submit" class="btn">Guardar y Imprimir</button>
+        </form>
+    </div>
+    <script>
+        let articulos = [];
+
+        function cargarCliente() {
+            const codigoCliente = document.getElementById('codigoCliente').value;
+            const clientes = {
+                '001': 'Juan Pérez',
+                '002': 'María Gómez'
+            };
+            if (clientes[codigoCliente]) {
+                document.getElementById('nombreCliente').value = clientes[codigoCliente];
+            } else {
+                alert('Cliente no encontrado');
+            }
+        }
+
+        function agregarArticulo() {
+            const nombre = prompt("Nombre del Artículo:");
+            const cantidad = parseInt(prompt("Cantidad:"), 10);
+            const precio = parseFloat(prompt("Precio:"));
+            const total = cantidad * precio;
+
+            const articulo = {
+                nombre,
+                cantidad,
+                precio,
+                total
+            };
+
+            articulos.push(articulo);
+            actualizarTabla();
+        }
+
+        function eliminarArticulo(index) {
+            articulos.splice(index, 1);
+            actualizarTabla();
+        }
+
+        function actualizarTabla() {
+            const tbody = document.getElementById('articulosTable').querySelector('tbody');
+            tbody.innerHTML = '';
+
+            let totalPagar = 0;
+
+            articulos.forEach((articulo, index) => {
+                const row = document.createElement('tr');
+                row.innerHTML = `
+                    <td><input type="hidden" name="articulos[${index}][nombre]" value="${articulo.nombre}">${articulo.nombre}</td>
+                    <td><input type="hidden" name="articulos[${index}][cantidad]" value="${articulo.cantidad}">${articulo.cantidad}</td>
+                    <td><input type="hidden" name="articulos[${index}][precio]" value="${articulo.precio.toFixed(2)}">${articulo.precio.toFixed(2)}</td>
+                    <td><input type="hidden" name="articulos[${index}][total]" value="${articulo.total.toFixed(2)}">${articulo.total.toFixed(2)}</td>
+                    <td><button class="btn btn-danger" type="button" onclick="eliminarArticulo(${index})">Eliminar</button></td>
+                `;
+                tbody.appendChild(row);
+
+                totalPagar += articulo.total;
+            });
+
+            document.getElementById('totalPagar').value = totalPagar.toFixed(2);
+        }
+
+        function guardarFactura(event) {
+            event.preventDefault();
+
+            const fecha = document.getElementById('fecha').value;
+            const codigoCliente = document.getElementById('codigoCliente').value;
+            const nombreCliente = document.getElementById('nombreCliente').value;
+            const totalPagar = document.getElementById('totalPagar').value;
+            const comentario = document.getElementById('comentario').value;
+
+            const factura = {
+                fecha,
+                codigoCliente,
+                nombreCliente,
+                articulos,
+                totalPagar,
+                comentario
+            };
+
+            // Guardar la factura en localStorage
+            let facturas = JSON.parse(localStorage.getItem('facturas')) || [];
+            facturas.push(factura);
+            localStorage.setItem('facturas', JSON.stringify(facturas));
+
+            // Notificar al usuario y preparar para "imprimir"
+            alert('Factura guardada e impresa');
+            window.print();
+
+            // Resetear el formulario y limpiar datos
+            document.getElementById('facturaForm').reset();
+            articulos = [];
+            actualizarTabla();
+        }
+
+        function logout() {
+            localStorage.removeItem('user');
+            window.location.href = 'index.html';
+        }
+
+        // Redireccionar si no está autenticado
+        if (!localStorage.getItem('user')) {
+            window.location.href = 'index.html';
+        }
+    </script>
+</body>
+</html>
